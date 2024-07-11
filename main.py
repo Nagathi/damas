@@ -49,20 +49,22 @@ def movimentar_pecas(tabuleiro, posicao_selecionada, posicao_destino):
         return False
     
     cor_peca = peca_selecionada['cor']
-    direcao = 1 if cor_peca == (0, 0, 255) else -1  # Direção de movimento
+    is_dama = 'dama' in peca_selecionada and peca_selecionada['dama']
     
-    # Movimento normal
-    if abs(linha_dest - linha_sel) == 1 and abs(coluna_dest - coluna_sel) == 1:
+    # Movimento simples para peça normal ou dama
+    if (abs(linha_dest - linha_sel) == 1 and abs(coluna_dest - coluna_sel) == 1) or \
+       (is_dama and abs(linha_dest - linha_sel) == abs(coluna_dest - coluna_sel)):
         if not tabuleiro[linha_dest][coluna_dest]:
             tabuleiro[linha_dest][coluna_dest] = peca_selecionada
             tabuleiro[linha_sel][coluna_sel] = None
-            # Verificar promoção a dama
+ 
             if (cor_peca == (255, 0, 0) and linha_dest == 0) or (cor_peca == (0, 0, 255) and linha_dest == 7):
                 tabuleiro[linha_dest][coluna_dest]['dama'] = True
             return True
     
-    # Captura
-    if abs(linha_dest - linha_sel) == 2 and abs(coluna_dest - coluna_sel) == 2:
+    # Captura para peça normal ou dama
+    if (abs(linha_dest - linha_sel) == 2 and abs(coluna_dest - coluna_sel) == 2) or \
+       (is_dama and abs(linha_dest - linha_sel) == abs(coluna_dest - coluna_sel) == 2):
         linha_meio = (linha_sel + linha_dest) // 2
         coluna_meio = (coluna_sel + coluna_dest) // 2
         peca_meio = tabuleiro[linha_meio][coluna_meio]
@@ -72,54 +74,55 @@ def movimentar_pecas(tabuleiro, posicao_selecionada, posicao_destino):
                 tabuleiro[linha_dest][coluna_dest] = peca_selecionada
                 tabuleiro[linha_meio][coluna_meio] = None
                 tabuleiro[linha_sel][coluna_sel] = None
-                # Verificar promoção a dama
+
                 if (cor_peca == (255, 0, 0) and linha_dest == 0) or (cor_peca == (0, 0, 255) and linha_dest == 7):
                     tabuleiro[linha_dest][coluna_dest]['dama'] = True
                 return True
     
     return False
 
+
 def jogo_terminado(tabuleiro):
+    print("Jogo finalizado!")
     return False
 
 def avaliacao(tabuleiro):
     return 0
 
 def minimax(tabuleiro, profundidade, alfa, beta, maximizando):
-    # Condição de parada: profundidade alcançada ou jogo terminado
     if profundidade == 0 or jogo_terminado(tabuleiro):
         return avaliacao(tabuleiro)
     
     if maximizando:
         melhor_valor = float('-inf')
-        movimentos = gerar_movimentos(tabuleiro, (0, 0, 255))  # Movimentos para peças azuis (bot)
+        movimentos = gerar_movimentos(tabuleiro, (0, 0, 255))
         for movimento in movimentos:
             tabuleiro_copia = copy.deepcopy(tabuleiro)
-            movimentar_pecas(tabuleiro_copia, movimento[0], movimento[1])  # Corrigido para passar apenas dois argumentos
+            movimentar_pecas(tabuleiro_copia, movimento[0], movimento[1])
             valor = minimax(tabuleiro_copia, profundidade - 1, alfa, beta, False)
             melhor_valor = max(melhor_valor, valor)
             alfa = max(alfa, melhor_valor)
             if beta <= alfa:
-                break  # Poda alfa-beta
+                break
         return melhor_valor
     else:
         melhor_valor = float('inf')
-        movimentos = gerar_movimentos(tabuleiro, (255, 0, 0))  # Movimentos para peças vermelhas (jogador humano)
+        movimentos = gerar_movimentos(tabuleiro, (255, 0, 0))
         for movimento in movimentos:
             tabuleiro_copia = copy.deepcopy(tabuleiro)
-            movimentar_pecas(tabuleiro_copia, movimento[0], movimento[1])  # Corrigido para passar apenas dois argumentos
+            movimentar_pecas(tabuleiro_copia, movimento[0], movimento[1])
             valor = minimax(tabuleiro_copia, profundidade - 1, alfa, beta, True)
             melhor_valor = min(melhor_valor, valor)
             beta = min(beta, melhor_valor)
             if beta <= alfa:
-                break  # Poda alfa-beta
+                break 
         return melhor_valor
 
 
 def movimento_bot():
-    movimentos = gerar_movimentos(tabuleiro, (0, 0, 255))  # Movimentos para peças azuis (bot)
+    movimentos = gerar_movimentos(tabuleiro, (0, 0, 255))
     if not movimentos:
-        return None, None  # Retorna None se não houver movimento válido
+        return None, None
     
     melhor_movimento = None
     melhor_valor = float('-inf')
@@ -127,7 +130,7 @@ def movimento_bot():
     for movimento in movimentos:
         tabuleiro_copia = copy.deepcopy(tabuleiro)
         movimentar_pecas(tabuleiro_copia, movimento[0], movimento[1])
-        valor = minimax(tabuleiro_copia, 3, float('-inf'), float('inf'), False)  # Profundidade do minimax: 3
+        valor = minimax(tabuleiro_copia, 3, float('-inf'), float('inf'), False)
         if valor > melhor_valor:
             melhor_valor = valor
             melhor_movimento = movimento
@@ -148,24 +151,43 @@ def gerar_movimentos(tabuleiro, cor):
         for coluna in range(8):
             peca = tabuleiro[linha][coluna]
             if peca and peca['cor'] == cor:
-                if 'tipo' in peca and peca['tipo'] == 'dama':
-                    for delta in [(8, -8), (8, 8)]:
+                if 'dama' in peca and peca['dama']:  # Verifica se é uma dama
+                    for delta in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:  # Movimentos diagonais
+                        nova_linha = linha + delta[0]
+                        nova_coluna = coluna + delta[1]
+                        
+                        while 0 <= nova_linha < 8 and 0 <= nova_coluna < 8:
+                            if not tabuleiro[nova_linha][nova_coluna]:
+                                movimentos.append(((linha, coluna), (nova_linha, nova_coluna)))
+                            else:
+                                break
+                            nova_linha += delta[0]
+                            nova_coluna += delta[1]
+
+
+                    # Captura para damas
+                    for delta in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
+                        linha_meio = linha + delta[0] // 2
+                        coluna_meio = coluna + delta[1] // 2
+                        nova_linha = linha + delta[0]
+                        nova_coluna = coluna + delta[1]
+
+                        if (0 <= nova_linha < 8 and 0 <= nova_coluna < 8 and
+                            tabuleiro[linha_meio][coluna_meio] and
+                            tabuleiro[linha_meio][coluna_meio]['cor'] != cor and
+                            not tabuleiro[nova_linha][nova_coluna]):
+                            capturas.append(((linha, coluna), (nova_linha, nova_coluna)))
+
+                else:  # Peça comum (não dama)
+                    for delta in [(1, -1), (1, 1)]:  # Movimentos diagonais simples
                         nova_linha = linha + delta[0] * direcao
-                        nova_coluna = coluna + delta[1] 
+                        nova_coluna = coluna + delta[1]
 
                         if 0 <= nova_linha < 8 and 0 <= nova_coluna < 8:
                             if not tabuleiro[nova_linha][nova_coluna]:
                                 movimentos.append(((linha, coluna), (nova_linha, nova_coluna)))
-                else:
-                    for delta in [(1, -1), (1, 1)]:
-                        nova_linha = linha + delta[0] * direcao
-                        nova_coluna = coluna + delta[1] 
 
-                        if 0 <= nova_linha < 8 and 0 <= nova_coluna < 8:
-                            if not tabuleiro[nova_linha][nova_coluna]:
-                                movimentos.append(((linha, coluna), (nova_linha, nova_coluna)))
-
-                    # Captura
+                    # Captura para peças comuns
                     for delta in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
                         linha_meio = linha + delta[0] // 2
                         coluna_meio = coluna + delta[1] // 2
@@ -181,6 +203,7 @@ def gerar_movimentos(tabuleiro, cor):
     if capturas:
         return capturas
     return movimentos
+
 
 
 
