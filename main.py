@@ -1,25 +1,21 @@
 import pygame
 import sys
 import copy
-# Inicialização do Pygame
+
 pygame.init()
 
-# Configurações da janela do jogo
 largura = 600
 altura = 600
-tamanho_casa = 75  # Tamanho de cada casa do tabuleiro
+tamanho_casa = 75
 
-# Cores
 BRANCO = (255, 255, 255)
 PRETO = (0, 0, 0)
-VERDE = (0, 255, 0)  # Cor para destacar a casa selecionada
+VERDE = (0, 255, 0)
 CINZA = (200, 200, 200)
 
-# Inicialização da janela
 janela = pygame.display.set_mode((largura, altura))
 pygame.display.set_caption('Jogo de Damas')
 
-# Estrutura de dados do tabuleiro
 tabuleiro = [
     [{'cor': (0, 0, 255), 'dama': False} if (linha + coluna) % 2 != 0 and linha < 3 else
      {'cor': (255, 0, 0), 'dama': False} if (linha + coluna) % 2 != 0 and linha > 4 else None
@@ -27,16 +23,14 @@ tabuleiro = [
     for linha in range(8)
 ]
 
-# Função para desenhar o tabuleiro
 def desenhar_tabuleiro():
     for linha in range(8):
         for coluna in range(8):
             cor = BRANCO if (linha + coluna) % 2 == 0 else PRETO
             pygame.draw.rect(janela, cor, (coluna * tamanho_casa, linha * tamanho_casa, tamanho_casa, tamanho_casa))
 
-# Função para desenhar as peças
 def desenhar_pecas():
-    raio = tamanho_casa // 2 - 5  # Raio das peças
+    raio = tamanho_casa // 2 - 5
     for linha in range(8):
         for coluna in range(8):
             if tabuleiro[linha][coluna] is not None:
@@ -154,27 +148,35 @@ def gerar_movimentos(tabuleiro, cor):
         for coluna in range(8):
             peca = tabuleiro[linha][coluna]
             if peca and peca['cor'] == cor:
-                # Movimento normal
-                for delta in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
-                    nova_linha = linha + delta[0] * direcao
-                    nova_coluna = coluna + delta[1]
+                if 'tipo' in peca and peca['tipo'] == 'dama':
+                    for delta in [(8, -8), (8, 8)]:
+                        nova_linha = linha + delta[0] * direcao
+                        nova_coluna = coluna + delta[1] 
 
-                    if 0 <= nova_linha < 8 and 0 <= nova_coluna < 8:
-                        if not tabuleiro[nova_linha][nova_coluna]:
-                            movimentos.append(((linha, coluna), (nova_linha, nova_coluna)))
+                        if 0 <= nova_linha < 8 and 0 <= nova_coluna < 8:
+                            if not tabuleiro[nova_linha][nova_coluna]:
+                                movimentos.append(((linha, coluna), (nova_linha, nova_coluna)))
+                else:
+                    for delta in [(1, -1), (1, 1)]:
+                        nova_linha = linha + delta[0] * direcao
+                        nova_coluna = coluna + delta[1] 
 
-                # Captura
-                for delta in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
-                    linha_meio = linha + delta[0] // 2
-                    coluna_meio = coluna + delta[1] // 2
-                    nova_linha = linha + delta[0]
-                    nova_coluna = coluna + delta[1]
+                        if 0 <= nova_linha < 8 and 0 <= nova_coluna < 8:
+                            if not tabuleiro[nova_linha][nova_coluna]:
+                                movimentos.append(((linha, coluna), (nova_linha, nova_coluna)))
 
-                    if (0 <= nova_linha < 8 and 0 <= nova_coluna < 8 and
-                        tabuleiro[linha_meio][coluna_meio] and
-                        tabuleiro[linha_meio][coluna_meio]['cor'] != cor and
-                        not tabuleiro[nova_linha][nova_coluna]):
-                        capturas.append(((linha, coluna), (nova_linha, nova_coluna)))
+                    # Captura
+                    for delta in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
+                        linha_meio = linha + delta[0] // 2
+                        coluna_meio = coluna + delta[1] // 2
+                        nova_linha = linha + delta[0]
+                        nova_coluna = coluna + delta[1]
+
+                        if (0 <= nova_linha < 8 and 0 <= nova_coluna < 8 and
+                            tabuleiro[linha_meio][coluna_meio] and
+                            tabuleiro[linha_meio][coluna_meio]['cor'] != cor and
+                            not tabuleiro[nova_linha][nova_coluna]):
+                            capturas.append(((linha, coluna), (nova_linha, nova_coluna)))
 
     if capturas:
         return capturas
